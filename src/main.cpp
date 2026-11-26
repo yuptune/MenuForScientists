@@ -5,41 +5,81 @@
 
 using namespace geode::prelude;
 
+static bool g_hasPlayedIntro = false;
+
 class MyPopup : public geode::Popup {
 protected:
 	bool init(std::string const& value) {
-		if (!Popup::init(240.f, 160.f))
+		if (!Popup::init(260.f, 160.f))
 			return false;
 
 		this->setTitle("Menu For Scientists");
 
-		auto toggleMenu = CCMenu::create();
-		toggleMenu->setContentSize({ 200.f, 40.f });
-		toggleMenu->setLayout(
+		auto toggleMenu1 = CCMenu::create();
+		toggleMenu1->setContentSize({ 210.f, 30.f });
+		toggleMenu1->setLayout(
 			RowLayout::create()
 				->setGap(10.f)
-				->setAxisAlignment(AxisAlignment::Center)
+				->setAxisAlignment(AxisAlignment::Start)
 		);
 
-		auto toggle = CCMenuItemExt::createTogglerWithStandardSprites(
-			0.8f,
+		auto toggle1 = CCMenuItemExt::createTogglerWithStandardSprites(
+			0.75f,
 			[](CCMenuItemToggler* sender) {
 				bool isChecked = !sender->isToggled();
 				Mod::get()->setSavedValue("bootycheeks", isChecked);
-				log::info("toggled: {}", isChecked);
+				log::info("toggled bootycheeks: {}", isChecked);
 			}
 		);
+		toggle1->toggle(Mod::get()->getSavedValue<bool>("bootycheeks", false));
 
-		toggle->toggle(Mod::get()->getSavedValue<bool>("bootycheeks", false));
+		auto label1 = CCLabelBMFont::create(value.c_str(), "bigFont.fnt");
+		label1->setScale(0.45f);
 
-		auto label = CCLabelBMFont::create(value.c_str(), "bigFont.fnt");
-		label->setScale(0.5f);
+		toggleMenu1->addChild(toggle1);
+		toggleMenu1->addChild(label1);
+		toggleMenu1->updateLayout();
 
-		toggleMenu->addChild(toggle);
-		toggleMenu->addChild(label);
-		toggleMenu->updateLayout();
+		auto toggleMenu2 = CCMenu::create();
+		toggleMenu2->setContentSize({ 210.f, 30.f });
+		toggleMenu2->setLayout(
+			RowLayout::create()
+				->setGap(10.f)
+				->setAxisAlignment(AxisAlignment::Start)
+		);
 
-		m_mainLayer->addChildAtPosition(toggleMenu, Anchor::Center);
+		auto toggle2 = CCMenuItemExt::createTogglerWithStandardSprites(
+			0.75f,
+			[](CCMenuItemToggler* sender) {
+				bool isChecked = !sender->isToggled();
+				Mod::get()->setSavedValue("daze_intro", isChecked);
+				log::info("toggled daze intro OK! {}", isChecked);
+			}
+		);
+		toggle2->toggle(Mod::get()->getSavedValue<bool>("daze_intro", false));
+
+		auto label2 = CCLabelBMFont::create("Daze Intro", "bigFont.fnt");
+		label2->setScale(0.45f);
+
+		toggleMenu2->addChild(toggle2);
+		toggleMenu2->addChild(label2);
+		toggleMenu2->updateLayout();
+
+		auto container = CCNode::create();
+		container->setContentSize({ 210.f, 75.f });
+		container->setAnchorPoint({ 0.5f, 0.5f });
+		container->ignoreAnchorPointForPosition(false);
+		container->setLayout(
+			ColumnLayout::create()
+				->setGap(10.f)
+				->setAxisReverse(true)
+				->setAxisAlignment(AxisAlignment::Center)
+		);
+		container->addChild(toggleMenu1);
+		container->addChild(toggleMenu2);
+		container->updateLayout();
+
+		m_mainLayer->addChildAtPosition(container, Anchor::Center, { 0.f, -10.f });
 
 		return true;
 	}
@@ -91,6 +131,61 @@ class $modify(MyMenuLayer, MenuLayer) {
 		leftMenu->updateLayout();
 		this->addChild(leftMenu);
 
+		if (!g_hasPlayedIntro && Mod::get()->getSavedValue<bool>("daze_intro", false)) {
+			g_hasPlayedIntro = true;
+
+			if (auto video = CCSprite::create("daze_intro.gif"_spr)) {
+				video->setID("dazeintro"_spr);
+				video->setPosition(winSize / 2.f);
+
+				auto vidSize = video->getContentSize();
+				if (vidSize.width > 0 && vidSize.height > 0) {
+					float scaleX = winSize.width / vidSize.width;
+					float scaleY = winSize.height / vidSize.height;
+					video->setScale(std::max(scaleX, scaleY));
+				}
+
+				auto introOverlay = CCMenu::create();
+				introOverlay->setID("dazeintro-overlay"_spr);
+				introOverlay->setPosition({ 0.f, 0.f });
+				introOverlay->setContentSize(winSize);
+				introOverlay->setZOrder(999);
+				introOverlay->addChild(video);
+
+				FMODAudioEngine::sharedEngine()->pauseAllMusic(true);
+				FMODAudioEngine::sharedEngine()->playEffect("daze_intro.ogg"_spr);
+
+				WeakRef<CCMenu> weakOverlay = introOverlay;
+				auto finishIntro = [weakOverlay]() {
+					if (auto overlay = weakOverlay.lock()) {
+						FMODAudioEngine::sharedEngine()->stopAllEffects();
+						FMODAudioEngine::sharedEngine()->resumeAllMusic();
+						overlay->removeFromParent();
+					}
+				};
+
+				auto skipArea = CCNode::create();
+				skipArea->setContentSize(winSize);
+				auto skipBtn = CCMenuItemExt::createSpriteExtra(
+					skipArea,
+					[finishIntro](CCMenuItemSpriteExtra*) {
+						finishIntro();
+					}
+				);
+				skipBtn->setPosition(winSize / 2.f);
+				introOverlay->addChild(skipBtn);
+
+				introOverlay->runAction(CCSequence::createWithTwoActions(
+					CCDelayTime::create(5.0f),
+					CallFuncExt::create(finishIntro)
+				));
+
+				this->addChild(introOverlay);
+			} else {
+				log::warn("bro the intro gif didnt friggn load");
+			}
+		}
+
 		return true;
 	}
 };
@@ -109,7 +204,7 @@ class $modify(TurnItOffNow, PauseLayer) {
 			}
 		);
 
-		if (auto leftMenu = this->getChildByID("leftbtnmenu")) {
+		if (auto leftMenu = this->getChildByID("left-button-menu")) {
 			leftMenu->addChild(btn);
 			leftMenu->updateLayout();
 		}

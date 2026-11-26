@@ -10,13 +10,15 @@
 	"name": "Menu For Scientists",
 	"version": "v1.0.0",
 	"developer": "omcrn",
-	"description": "The menu for scientists, can reveal the Hi at any time.",
+	"description": "The menu for scientists",
 	"dependencies": {
-		"geode.node-ids": ">=v1.24.0-beta.1"
+		"prevter.imageplus": ">=v1.2.2"
 	},
 	"resources": {
 		"files": [
-			"resources/hi.jpg"
+			"resources/hi.jpg",
+			"resources/daze_intro.gif",
+			"resources/daze_intro.ogg"
 		]
 	}
 }
