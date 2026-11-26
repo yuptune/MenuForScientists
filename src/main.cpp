@@ -10,7 +10,7 @@ static bool g_hasPlayedIntro = false;
 class MyPopup : public geode::Popup {
 protected:
 	bool init(std::string const& value) {
-		if (!Popup::init(260.f, 160.f))
+		if (!Popup::init(260.f, 195.f))
 			return false;
 
 		this->setTitle("Menu For Scientists");
@@ -79,7 +79,35 @@ protected:
 		container->addChild(toggleMenu2);
 		container->updateLayout();
 
-		m_mainLayer->addChildAtPosition(container, Anchor::Center, { 0.f, -10.f });
+		m_mainLayer->addChildAtPosition(container, Anchor::Center, { 0.f, 12.f });
+
+		auto restartMenu = CCMenu::create();
+		restartMenu->setContentSize({ 210.f, 35.f });
+		restartMenu->setLayout(RowLayout::create());
+
+		auto restartSprite = ButtonSprite::create("kill hinds", "bigFont.fnt", "GJ_button_06.png");
+		restartSprite->setScale(0.55f);
+
+		auto restartBtn = CCMenuItemExt::createSpriteExtra(
+			restartSprite,
+			[](CCMenuItemSpriteExtra* sender) {
+				geode::createQuickPopup(
+					"Restart Game",
+					"Are you sure you want to <cr>restart</c> Geometry Dash?",
+					"Oh, Hell no!", "Restart the game :(",
+					[](auto, bool btn2) {
+						if (btn2) {
+							geode::utils::game::restart(true);
+						}
+					}
+				);
+			}
+		);
+
+		restartMenu->addChild(restartBtn);
+		restartMenu->updateLayout();
+
+		m_mainLayer->addChildAtPosition(restartMenu, Anchor::Bottom, { 0.f, 24.f });
 
 		return true;
 	}
